@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>News RAG Agent</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        background: #050816;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        color: #e5e7eb;
+        display: flex;
+        justify-content: center;
+        align-items: stretch;
+        min-height: 100vh;
+      }
+
+      .app {
+        width: 100%;
+        max-width: 900px;
+        margin: 16px;
+        background: radial-gradient(circle at top left, #111827, #020617);
+        border-radius: 18px;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 24px 80px rgba(15, 23, 42, 0.9);
+      }
+
+      .app-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 16px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+        background: linear-gradient(
+          90deg,
+          rgba(15, 23, 42, 0.9),
+          rgba(8, 47, 73, 0.9)
+        );
+      }
+
+      .logo {
+        font-size: 28px;
+      }
+
+      .app-header h1 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #f9fafb;
+      }
+
+      .app-header p {
+        margin: 2px 0 0;
+        font-size: 13px;
+        color: #9ca3af;
+      }
+
+      .clear-btn {
+        margin-left: auto;
+        background: transparent;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.5);
+        padding: 6px 14px;
+        color: #e5e7eb;
+        font-size: 12px;
+        cursor: pointer;
+        transition: background 0.15s ease, transform 0.1s ease,
+          border-color 0.15s ease;
+      }
+
+      .clear-btn:hover {
+        background: rgba(148, 163, 184, 0.16);
+        border-color: rgba(248, 250, 252, 0.7);
+        transform: translateY(-1px);
+      }
+
+      .chat-container {
+        flex: 1;
+        padding: 12px 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .message {
+        display: flex;
+      }
+
+      .message-user {
+        justify-content: flex-end;
+      }
+
+      .message-bot {
+        justify-content: flex-start;
+      }
+
+      .bubble {
+        max-width: 75%;
+        border-radius: 18px;
+        padding: 8px 11px;
+        background: rgba(15, 23, 42, 0.9);
+        border: 1px solid rgba(75, 85, 99, 0.65);
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.8);
+      }
+
+      .message-user .bubble {
+        background: linear-gradient(135deg, #4f46e5, #06b6d4);
+        border-color: transparent;
+      }
+
+      .meta {
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 4px;
+        opacity: 0.75;
+      }
+
+      .message-user .meta {
+        text-align: right;
+      }
+
+      .content {
+        font-size: 14px;
+        line-height: 1.4;
+        white-space: pre-wrap;
+      }
+
+      .input-area {
+        display: flex;
+        gap: 8px;
+        padding: 10px 12px;
+        border-top: 1px solid rgba(148, 163, 184, 0.25);
+        background: rgba(15, 23, 42, 0.96);
+      }
+
+      #message-input {
+        flex: 1;
+        resize: none;
+        border-radius: 12px;
+        border: 1px solid rgba(55, 65, 81, 0.9);
+        background: rgba(15, 23, 42, 0.85);
+        color: #f9fafb;
+        padding: 8px 10px;
+        font-size: 14px;
+        outline: none;
+      }
+
+      #message-input::placeholder {
+        color: #6b7280;
+      }
+
+      #message-input:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.5);
+      }
+
+      #send-btn {
+        border-radius: 999px;
+        border: none;
+        padding: 0 18px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        background: linear-gradient(135deg, #6366f1, #ec4899);
+        color: #f9fafb;
+        box-shadow: 0 10px 25px rgba(129, 140, 248, 0.6);
+        transition: transform 0.08s ease, box-shadow 0.1s ease,
+          filter 0.12s ease;
+      }
+
+      #send-btn:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.05);
+      }
+
+      #send-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 4px 15px rgba(129, 140, 248, 0.4);
+      }
+
+      .chat-container::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .chat-container::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .chat-container::-webkit-scrollbar-thumb {
+        background: rgba(75, 85, 99, 0.8);
+        border-radius: 999px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="app-header">
+        <div class="logo">📰</div>
+        <div>
+          <h1>News RAG Agent</h1>
+          <p>Ask about news in English – the model searches NewsAPI data and answers.</p>
+        </div>
+        <button id="clear-btn" class="clear-btn" type="button">Clear</button>
+      </header>
+
+      <main class="chat-container" id="chat-container"></main>
+
+      <form class="input-area" id="chat-form">
+        <textarea
+          id="message-input"
+          placeholder="Type your question about news..."
+          rows="2"
+        ></textarea>
+        <button type="submit" id="send-btn">Send</button>
+      </form>
+    </div>
+
+    <script>
+      const chatContainer = document.getElementById("chat-container");
+      const form = document.getElementById("chat-form");
+      const input = document.getElementById("message-input");
+      const clearBtn = document.getElementById("clear-btn");
+
+      function addMessage(text, sender) {
+        const msg = document.createElement("div");
+        msg.classList.add(
+          "message",
+          sender === "user" ? "message-user" : "message-bot"
+        );
+
+        const bubble = document.createElement("div");
+        bubble.classList.add("bubble");
+
+        const meta = document.createElement("div");
+        meta.classList.add("meta");
+        meta.textContent = sender === "user" ? "You" : "Assistant";
+
+        const content = document.createElement("div");
+        content.classList.add("content");
+        content.textContent = text;
+
+        bubble.appendChild(meta);
+        bubble.appendChild(content);
+        msg.appendChild(bubble);
+        chatContainer.appendChild(msg);
+
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+
+      async function sendMessage(event) {
+        event.preventDefault();
+        const text = input.value.trim();
+        if (!text) return;
+
+        addMessage(text, "user");
+        input.value = "";
+
+        const thinkingId = "thinking-" + Date.now();
+        const thinkingMsg = document.createElement("div");
+        thinkingMsg.classList.add("message", "message-bot");
+        thinkingMsg.id = thinkingId;
+
+        const bubble = document.createElement("div");
+        bubble.classList.add("bubble");
+
+        const meta = document.createElement("div");
+        meta.classList.add("meta");
+        meta.textContent = "Assistant";
+
+        const content = document.createElement("div");
+        content.classList.add("content");
+        content.textContent = "Thinking...";
+
+        bubble.appendChild(meta);
+        bubble.appendChild(content);
+        thinkingMsg.appendChild(bubble);
+        chatContainer.appendChild(thinkingMsg);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        try {
+          const resp = await fetch("http://127.0.0.1:5000/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: text }),
+          });
+          const data = await resp.json();
+          const answer = data.answer || "(no answer)";
+          const el = document.getElementById(thinkingId);
+          if (el) {
+            el.querySelector(".content").textContent = answer;
+          }
+        } catch (err) {
+          console.error(err);
+          const el = document.getElementById(thinkingId);
+          if (el) {
+            el.querySelector(".content").textContent =
+              "Error while contacting the server.";
+          }
+        }
+      }
+
+      async function clearChat() {
+        chatContainer.innerHTML = "";
+        input.value = "";
+        try {
+          await fetch("http://127.0.0.1:5000/api/clear", { method: "POST" });
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      form.addEventListener("submit", sendMessage);
+      clearBtn.addEventListener("click", clearChat);
+    </script>
+  </body>
+</html>
